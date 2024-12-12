@@ -21,6 +21,26 @@
 
 LOG_MODULE_REGISTER(eth_lan9250, CONFIG_ETHERNET_LOG_LEVEL);
 
+#define CUSTOM_PIN_NODE DT_ALIAS(led3)
+static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(CUSTOM_PIN_NODE, gpios);
+
+static int lan9250_hw_reset(void)
+{
+	// Configure the rest pin
+	if (!gpio_is_ready_dt(&led)) {
+		return 0;
+	}
+
+	int ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_ACTIVE);
+	if (ret < 0) {
+		return 0;
+	}
+	// Reset the GPIO Pin
+	gpio_pin_set_dt(&led, 0);
+	gpio_pin_set_dt(&led, 1);
+	return 0;
+}
+
 static int lan9250_write_sys_reg(const struct device *dev, uint16_t address, uint32_t data)
 {
 	const struct lan9250_config *config = dev->config;
@@ -655,6 +675,8 @@ static const struct ethernet_api api_funcs = {
 
 static int lan9250_init(const struct device *dev)
 {
+	lan9250_hw_reset();
+
 	const struct lan9250_config *config = dev->config;
 	struct lan9250_runtime *context = dev->data;
 
